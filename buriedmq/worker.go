@@ -1,8 +1,8 @@
 package buriedmq
 
 import (
-	"buried"
 	"github.com/streadway/amqp"
+	"github.com/zc2638/buried"
 )
 
 type mqWorker struct {

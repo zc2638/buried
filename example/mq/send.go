@@ -1,7 +1,7 @@
 package main
 
 import (
-	"buried/buriedmq"
+	"github.com/zc2638/buried/buriedmq"
 	"strconv"
 )
 

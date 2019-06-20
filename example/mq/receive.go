@@ -1,8 +1,8 @@
 package main
 
 import (
-	"buried/buriedmq"
 	"fmt"
+	"github.com/zc2638/buried/buriedmq"
 	"log"
 )
 
