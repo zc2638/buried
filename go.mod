@@ -1,4 +1,4 @@
-module buried
+module github.com/zc2638/buried
 
 go 1.12
 
