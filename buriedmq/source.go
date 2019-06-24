@@ -2,6 +2,11 @@ package buriedmq
 
 import "github.com/streadway/amqp"
 
+// 接收通道
+type MqResult <-chan amqp.Delivery
+
+type WorkerOption func(w *mqWorker)
+
 // 队列
 type MqQueue struct {
 	Name       string     // 队列名称，默认default
@@ -11,6 +16,16 @@ type MqQueue struct {
 	NoWait     bool       // 是否非阻塞，true非阻塞 不等待返回，false阻塞等待返回信息
 	Args       amqp.Table // 参数
 	exist      bool       // 是否声明过
+}
+
+// 列队绑定
+type MqQueueBind struct {
+	Name     string
+	Key      string
+	Exchange string
+	NoWait   bool
+	Args     amqp.Table
+	exist    bool
 }
 
 // 交换机
@@ -25,6 +40,13 @@ type MqExchange struct {
 	exist      bool
 }
 
+// Qos
+type MqQos struct {
+	prefetchCount int
+	prefetchSize int
+	global bool
+}
+
 type MqPublishData struct {
 	Exchange  string // 交换机名称，默认空
 	Key       string // route_key
@@ -33,7 +55,7 @@ type MqPublishData struct {
 }
 
 type MqConsumeData struct {
-	Queue     string //队列名称，默认default
+	Queue     string // 队列名称，默认default
 	Consumer  string
 	AutoAck   bool
 	Exclusive bool
@@ -41,8 +63,3 @@ type MqConsumeData struct {
 	NoWait    bool
 	Args      amqp.Table
 }
-
-// 接收通道
-type MqResult <-chan amqp.Delivery
-
-type WorkerOption func(w *mqWorker)

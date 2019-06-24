@@ -13,13 +13,15 @@ const (
 )
 
 type mqSystem struct {
-	host         string
-	user         string
-	pwd          string
-	conn         *amqp.Connection
-	ch           *amqp.Channel
-	exchangePool map[string]*MqExchange
-	queuePool    map[string]*MqQueue
+	host          string
+	user          string
+	pwd           string
+	conn          *amqp.Connection
+	ch            *amqp.Channel
+	exchangePool  map[string]*MqExchange
+	queuePool     map[string]*MqQueue
+	queueBindPool []*MqQueueBind
+	qos           MqQos
 }
 
 func NewMqSystem(host string, user string, pwd string) *mqSystem {
@@ -43,6 +45,10 @@ func (s *mqSystem) Conn() error {
 			return err
 		}
 		s.ch = ch
+
+		if err := ch.Qos(s.qos.prefetchCount, s.qos.prefetchSize, s.qos.global); err != nil {
+			return err
+		}
 	}
 
 	if s.queuePool == nil {
@@ -50,6 +56,12 @@ func (s *mqSystem) Conn() error {
 	}
 
 	return nil
+}
+
+func (s *mqSystem) GetCh() (*amqp.Channel, error) {
+
+	err := s.Conn()
+	return s.ch, err
 }
 
 func (s *mqSystem) CloseCh() error {
@@ -69,6 +81,11 @@ func (s *mqSystem) Close() error {
 		return err
 	}
 	return nil
+}
+
+// 设置Qos
+func (s *mqSystem) Qos(q MqQos) {
+	s.qos = q
 }
 
 // 声明队列池
@@ -103,6 +120,40 @@ func (s *mqSystem) checkQueue(name string) error {
 			return err
 		}
 		s.queuePool[name].exist = true
+	}
+	return nil
+}
+
+// 队列绑定
+func (s *mqSystem) QueueBind(qbs ...*MqQueueBind) error {
+
+	if s.queueBindPool == nil {
+		s.queueBindPool = make([]*MqQueueBind, 0)
+	}
+
+	for _, qb := range qbs {
+		if qb.Name == "" {
+			qb.Name = QUEUE_DEFAULT
+		}
+		if _, ok := s.queuePool[qb.Name]; !ok {
+			return errors.New(qb.Name + " queue is not exit in queue pool, create queue bind fail")
+		}
+		s.queueBindPool = append(s.queueBindPool, qb)
+	}
+	return nil
+}
+
+// 检查队列绑定
+func (s *mqSystem) checkQueueBind(name string) error {
+
+	for _, v := range s.queueBindPool {
+		if v.Name == name && !v.exist {
+			if err := s.ch.QueueBind(v.Name, v.Key, v.Exchange, v.NoWait, v.Args); err != nil {
+				return err
+			}
+			v.exist = true
+			return nil
+		}
 	}
 	return nil
 }
@@ -155,7 +206,7 @@ func (s *mqSystem) checkExchange(name string) error {
 
 func (s *mqSystem) NewWorker(wps ...WorkerOption) *mqWorker {
 
-	worker := &mqWorker{system: s}
+	worker := &mqWorker{System: s}
 	for _, wp := range wps {
 		wp(worker)
 	}

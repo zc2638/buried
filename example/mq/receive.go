@@ -9,6 +9,7 @@ import (
 func main() {
 
 	mq := buriedmq.NewMqSystem("localhost:5672", "guest", "guest")
+
 	consumeData := buriedmq.MqConsumeData{AutoAck: true}
 	worker := mq.NewWorker(
 		buriedmq.NewConsume(consumeData),
